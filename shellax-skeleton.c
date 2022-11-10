@@ -439,9 +439,6 @@ int process_command(struct command_t *command) {
 	/*****************************************************************************************************/
 	
 	/* debugging */
-	int index = 0;
-	
-	
 	//while(command->args[index] != NULL){
 	/*
 	while(command){
@@ -454,7 +451,7 @@ int process_command(struct command_t *command) {
 	}
 	*/
 	
-	/******************************************************************************************for 2 pipes
+	/******************************************************* for 2 pipes WORKS!! 
 	if (command->next != NULL){
 		printf("PIPESS BABY\n");
 		int fd[2];
@@ -521,35 +518,234 @@ int process_command(struct command_t *command) {
    		command->args[command->arg_count - 1] = NULL;
 		
 	}
-	*************************************************************************/
-	// TODO: impelement for 3 pipes
+	*************************************************************************************/
 	
+	// works for 3 pipes
+	/***********************************************************************************
+	if (command->next != NULL){
+		int fd[2];
+		pipe(fd); // pipe between parent and child
+		//will create one more pipe between child and grandchild
+		pid_t pipebaby = fork();
+		if (pipebaby == 0){
+			//child
+			int fd2[2];
+			pipe(fd2);
+			pid_t pipebaby2 = fork();
+			if (pipebaby2 == 0){
+				//grandchild
+				//has only access to fd2
+				dup2(fd2[WRITE_END], 1);//write to child
+       			close(fd2[WRITE_END]);
+        		close(fd2[READ_END]);
+        		//execute the 1st command
+        		char *token = strtok(getenv("PATH"),":");
+        		while(token != NULL){
+					char path[50];
+					strcpy(path,token);	
+					strcat(path,"/");
+					strcat(path,command->args[0]);
+					if (execv(path,command->args) != -1){ // do nothing
+					}
+					token = strtok(NULL,":");	
+				}
+			}
+			else{
+				//child
+				//has access to fd2 and fd
+				dup2(fd2[READ_END], 0);//take input from grandchild
+       			close(fd2[WRITE_END]);
+        		close(fd2[READ_END]);
+        		wait(NULL);
+        		dup2(fd[WRITE_END], 1);// take input from child
+       			close(fd[WRITE_END]);
+        		close(fd[READ_END]);
+        		command = command->next;
+        		// increase args size by 2
+    			command->args = (char **)realloc(
+        			command->args, sizeof(char *) * (command->arg_count += 2));
+
+				// shift everything forward by 1
+			    for (int i = command->arg_count - 2; i > 0; --i)
+ 			   		command->args[i] = command->args[i - 1];
+
+			    // set args[0] as a copy of name
+ 			    command->args[0] = strdup(command->name);
+ 			    // set args[arg_count-1] (last) to NULL
+ 			    command->args[command->arg_count - 1] = NULL;
+ 			    char *token = strtok(getenv("PATH"),":");
+        		while(token != NULL){
+					char path[50];
+					strcpy(path,token);	
+					strcat(path,"/");
+					strcat(path,command->args[0]);
+					if (execv(path,command->args) != -1){ // do nothing
+					}
+					token = strtok(NULL,":");	
+				}
+			}
+		}
+		else{
+			// parent
+			dup2(fd[READ_END], 0);// take input from child
+       		close(fd[WRITE_END]);
+        	close(fd[READ_END]);
+			wait(NULL);
+			command = command->next;
+			command = command->next;
+			// increase args size by 2
+    		command->args = (char **)realloc(
+        		command->args, sizeof(char *) * (command->arg_count += 2));
+
+			// shift everything forward by 1
+			for (int i = command->arg_count - 2; i > 0; --i)
+		 		command->args[i] = command->args[i - 1];
+
+			// set args[0] as a copy of name
+ 			command->args[0] = strdup(command->name);
+ 			// set args[arg_count-1] (last) to NULL
+ 			command->args[command->arg_count - 1] = NULL;
+			char *token = strtok(getenv("PATH"),":");
+        		while(token != NULL){
+					char path[50];
+					strcpy(path,token);	
+					strcat(path,"/");
+					strcat(path,command->args[0]);
+					if (execv(path,command->args) != -1){ // do nothing
+					}
+					token = strtok(NULL,":");	
+				}
+		}
+	}
+	*******************************************************************************************/
 	
 	// for more than 2 pipes
 	//getting total number of pipes
+
 	struct command_t *head = command;
-	int total_pipes = 1;
-	while (command->next){
+	int total_pipes = 0;
+	while (command){
 		total_pipes++;
+		//printf("command : %s\n",command->name);
 		command = command->next;
+		
 	}
 	command = head;
 	//printf("total_pipes = %d\n",total_pipes);
 	int iteration = total_pipes;
-	// ************* TODO: doesnt work for 2 pipes amk niye  galiba pipe açık*****************************************************
+	printf("iteration = %d\n",iteration);
 	while (iteration != 1){ // basically create a line of grand children
 		int fd[2];
-		pipe(fd);
-		pid_t pid = fork();
-		if (pid == 0){
-			if (iteration == 2){//last iteration artık 
-				// this is the last one so this will only write
-				dup2(fd[READ_END], 1);
-       			close(fd[WRITE_END]);
-        		close(fd[READ_END]);
-        		//continue to execution
-        		//last child should execute the last command
-        		for (int i = 0; i < (total_pipes - iteration) + 1 ; i++){
+		//pipe(fd);
+		pid_t pipebaby = fork();
+		
+		if (pipebaby == 0){
+			if (iteration == total_pipes){ //first iteration
+				//******************write the output into a file then keep going from there************************//
+				/****** delete the file if it exist */
+				if (access("pipes.txt", F_OK) == 0) {
+					pid_t terrorist = fork();
+					if (terrorist == 0){
+						strcpy(command->args[1],"pipes.txt");
+						strcpy(command->args[0],"rm");
+						command->args[2] = NULL;
+						execvp("rm",command->args);
+						exit(0);
+					}
+				}
+				/******************************************/
+				/*** write to the file ****/
+				int file_desc1 = open("pipes.txt",O_WRONLY | O_CREAT,0777) ;
+				int fd_dup2 = dup2(file_desc1,1);
+				close(file_desc1);
+				//execute the code
+				char *token = strtok(getenv("PATH"),":");
+				while(token != NULL){
+					char path[50];
+					strcpy(path,token);	
+					strcat(path,"/");
+					strcat(path,command->args[0]);
+					if (execv(path,command->args) != -1){ // do nothing
+					}
+					token = strtok(NULL,":");	
+				}
+			}
+			else{
+				// not first iteration
+				for (int i=0 ; i<(total_pipes-iteration)+1 ;i++){
+        			command = command->next;
+        		}
+				// increase args size by 2
+    			command->args = (char **)realloc(
+       				command->args, sizeof(char *) * (command->arg_count += 2));
+
+				// shift everything forward by 1
+				for (int i = command->arg_count - 2; i > 0; --i)
+		   			command->args[i] = command->args[i - 1];
+		    	// set args[0] as a copy of name
+			    command->args[0] = strdup(command->name);
+			   	// set args[arg_count-1] (last) to NULL
+			    command->args[command->arg_count - 1] = NULL;
+			    ////////////////////////////////////////////////////////////
+				/********** take inputs from the file ************************/
+				int file_desc = open("pipes.txt",O_RDONLY);
+				int fd_dup1 = dup2(file_desc,0);
+				close(file_desc);
+				
+				/************ write to the file ********************/
+				if (access("pipes.txt", F_OK) == 0) {
+					pid_t terrorist = fork();
+					if (terrorist == 0){
+						strcpy(command->args[1],"pipes.txt");
+						strcpy(command->args[0],"rm");
+						command->args[2] = NULL;
+						execvp("rm",command->args);
+						exit(0);
+					}
+				}
+				int file_desc1 = open("pipes.txt",O_WRONLY | O_CREAT,0777) ;
+				int fd_dup2 = dup2(file_desc1,1);
+				close(file_desc1);
+				//execute the code
+				char *token = strtok(getenv("PATH"),":");
+				
+				while(token != NULL){
+					char path[50];
+					strcpy(path,token);	
+					strcat(path,"/");
+					strcat(path,command->args[0]);
+					if (execv(path,command->args) != -1){ // do nothing
+						}
+					token = strtok(NULL,":");	
+					}
+				}
+				
+			}
+		
+		else{ 
+			if(iteration != 2){
+				wait(NULL);
+				//do nothing and let the children execute
+				
+			}
+			else{
+				wait(NULL);
+				// take the input from the file
+				int file_desc = open("pipes.txt",O_RDONLY);
+				int fd_dup1 = dup2(file_desc,0);
+				close(file_desc);
+				// remove the txt file
+				if (access("pipes.txt", F_OK) == 0) {
+					pid_t terrorist = fork();
+					if (terrorist == 0){
+						strcpy(command->args[1],"pipes.txt");
+						strcpy(command->args[0],"rm");
+						command->args[2] = NULL;
+						execvp("rm",command->args);
+						exit(0);
+					}
+				}
+				for (int i=0 ; i<(total_pipes-iteration)+1 ;i++){
         			command = command->next;
         		}
         		// increase args size by 2
@@ -564,6 +760,13 @@ int process_command(struct command_t *command) {
  			    command->args[0] = strdup(command->name);
  			    // set args[arg_count-1] (last) to NULL
  			    command->args[command->arg_count - 1] = NULL;
+ 			    printf("command = %s\n",command->args[0]);
+ 			    /******** debugging moment ************/
+ 			    int index = 0;
+ 			    while(command->args[index] != NULL){
+ 			    	printf("command->args[%d] = %s\n",index,command->args[index]);
+ 			    	index++;
+ 			    }
 				char *token = strtok(getenv("PATH"),":");
 				while(token != NULL){
 					char path[50];
@@ -576,50 +779,8 @@ int process_command(struct command_t *command) {
 				}
 			}
 		}
-		else{
-			//if (total_pipes == iteration){//first parent
-			//	// first parent so this will only take input
-			//	dup2(fd[READ_END], 0);
-       		//	close(fd[WRITE_END]);
-        	//	close(fd[READ_END]);
-			//	wait(NULL);
-			//}
-			//else{
-				// wait for the input from the child
-				dup2(fd[READ_END], 0);
-       			close(fd[WRITE_END]);
-        		close(fd[READ_END]);
-				wait(NULL);
-				// now we have the input from the child.
-				for (int i = 0; i < (total_pipes - iteration); i++){
-        			command = command->next;
-        		}
-        		// increase args size by 2
-    			command->args = (char **)realloc(
-        			command->args, sizeof(char *) * (command->arg_count += 2));
-
-				// shift everything forward by 1
-			    for (int i = command->arg_count - 2; i > 0; --i)
- 			   		command->args[i] = command->args[i - 1];
-
-			    // set args[0] as a copy of name
- 			    command->args[0] = strdup(command->name);
- 			    // set args[arg_count-1] (last) to NULL
- 			    command->args[command->arg_count - 1] = NULL;
-				char *token = strtok(getenv("PATH"),":");
-				while(token != NULL){
-					char path[50];
-					strcpy(path,token);	
-					strcat(path,"/");
-					strcat(path,command->args[0]);
-					if (execv(path,command->args) != -1){ // do nothing
-						}
-					token = strtok(NULL,":");	
-				}
-			}
-		//}
 		iteration--;
-	}
+	}  
 	
     char *token = strtok(getenv("PATH"),":");
 	while(token != NULL){
