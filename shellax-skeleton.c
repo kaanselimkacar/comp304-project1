@@ -7,6 +7,10 @@
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <dirent.h>
+
 
 #define READ_END 0
 #define WRITE_END 1
@@ -477,10 +481,111 @@ int process_command(struct command_t *command) {
       }
     token = strtok(NULL,":");	
     }
-    
-
-		
 	}
+  /************************* END WISEMAN *********************************************/
+  if(strcmp(command->args[0],"wisemanoff") == 0){
+    printf("Wisemanoff executed!\n");
+    command->args[0] = "crontab";
+    command->args[1] = "-r";
+    command->args[2] = NULL;
+    char *token = strtok(getenv("PATH"),":");
+    while(token != NULL){
+      char path[50];
+      strcpy(path,token);	
+      strcat(path,"/");
+      strcat(path,command->args[0]);
+      if (execv(path,command->args) != -1){ // do nothing
+      }
+    token = strtok(NULL,":");	
+    }
+  }
+  /********************chatroom***************************************************/
+  if(strcmp(command->args[0],"chatroom") == 0){
+    if(command->args[1] == NULL || command->args[2] == NULL){
+      printf("chatroom requires 2 arguments\n");
+      exit(0);
+    }
+    char room[50] = "chatroom-";
+    strcat(room,command->args[1]);
+    char *name = command->args[2];
+    // create the room_address
+    char room_address[50] = "/tmp/";
+    strcat(room_address,room);
+    //create the user_address
+    char user_address[50] = "/tmp/";
+    strcat(user_address,room);
+    strcat(user_address,"/");
+    strcat(user_address,name);
+
+    if(access(room_address, F_OK) == -1){
+      //if the chatroom doesn't exist
+      //create the chatroom
+      mkdir(room_address, 0777);
+    }
+      //check if user exists 
+    if(access(user_address, F_OK) == -1){
+      //if the user doesn't exist
+      //create the user
+      mkfifo(user_address, 0777);
+    }
+    //continuosuly read from the user fifo
+    //continuously write to the chatroom fifo
+    int fd = open(user_address, O_RDONLY);
+    char read_msg[100];
+    char prev_msg[100];
+    char write_msg[100];
+    pid_t reader_child = fork();
+    if(reader_child == 0){
+      while(1){
+        read(fd, read_msg, 100);
+        if(strcmp(read_msg,prev_msg) != 0){
+          printf("%s: %s\n",name,read_msg);
+          strcpy(prev_msg,read_msg);
+        }
+      }
+    }
+    else{//writer parent
+      while(1){
+        fgets(write_msg, 100, stdin);
+        //write to all other users' pipe
+        DIR *d;
+        struct dirent *dir;
+        d = opendir(room_address);
+        if (d){
+          while ((dir = readdir(d)) != NULL){
+            if(strcmp(dir->d_name,".") != 0 && strcmp(dir->d_name,"..") != 0 && strcmp(dir->d_name,name) != 0){
+              char user_address[50] = "/tmp/";
+              strcat(user_address,room);
+              strcat(user_address,"/");
+              strcat(user_address,dir->d_name);
+              int fd = open(user_address, O_WRONLY);
+              write(fd, write_msg, 100);
+            }
+          }
+          closedir(d);
+        }
+      }
+    }  
+  }
+    
+  /**********************custom command(dadjokes)*****************************/
+  if (strcmp(command->args[0],"dadjokes") == 0){
+    FILE *fp;
+    fp = fopen("dadjokes.txt","r");
+    char str[500];
+    srand(time(NULL));
+    int random = rand() % 250;
+    int i = 0;
+    while (fgets(str,500,fp) != NULL){
+      if (i == random){
+        printf("%s\n",str);
+        break;
+      }
+      i++;
+    }
+    fclose(fp);
+    exit(0);
+  }
 	/*********************** UNIQ ***************************************/
 	
 	if (strcmp(command->args[0],"uniq") == 0 ){
