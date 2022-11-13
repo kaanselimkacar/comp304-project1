@@ -10,6 +10,8 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 
 #define READ_END 0
@@ -530,23 +532,29 @@ int process_command(struct command_t *command) {
     }
     //continuosuly read from the user fifo
     //continuously write to the chatroom fifo
-    int fd = open(user_address, O_RDONLY);
+    
     char read_msg[100];
     char prev_msg[100];
+    char get_msg[100];
     char write_msg[100];
+    printf("Welcome to %s!\n",command->args[1]);
     pid_t reader_child = fork();
     if(reader_child == 0){
+      int fd = open(user_address, O_RDONLY);
       while(1){
         read(fd, read_msg, 100);
         if(strcmp(read_msg,prev_msg) != 0){
-          printf("%s: %s\n",name,read_msg);
+          printf("[%s] %s",command->args[1],read_msg);
           strcpy(prev_msg,read_msg);
         }
       }
     }
     else{//writer parent
       while(1){
-        fgets(write_msg, 100, stdin);
+        strcpy(write_msg,name);
+        strcat(write_msg,": ");
+        fgets(get_msg, 100, stdin);
+        strcat(write_msg,get_msg);
         //write to all other users' pipe
         DIR *d;
         struct dirent *dir;
