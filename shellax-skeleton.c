@@ -663,6 +663,25 @@ int process_command(struct command_t *command) {
 				    	
 						}
 					}
+					else{ //just uniq command exists
+						for (i=0; i<N; i++) {
+							if (i!=0) {	
+								for (int j=i-1; j<i+1; j++) {					
+									if (strcmp(strings[i],strings[j])==0) {
+								     		//do nothing;
+									}
+									else {
+										printf("%s",strings[i]);
+									}
+								}
+							}
+							else {
+								printf("%s",strings[i]);
+							}
+						}
+					}
+					
+					
 				}     
 			}
 		 }
