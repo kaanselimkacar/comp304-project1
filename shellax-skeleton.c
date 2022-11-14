@@ -362,8 +362,6 @@ int process_command(struct command_t *command) {
     command->args[0] = strdup(command->name);
     // set args[arg_count-1] (last) to NULL
     command->args[command->arg_count - 1] = NULL;
-
-    // TODO: do your own exec with path resolving using execv()
     // do so by replacing the execvp call below
     
     char *dummystr = command->args[command->arg_count-2];
@@ -504,7 +502,7 @@ int process_command(struct command_t *command) {
     token = strtok(NULL,":");	
     }
   }
-  /********************chatroom***************************************************/
+  /********************CHATROOM***************************************************/
   if(strcmp(command->args[0],"chatroom") == 0){
     if(command->args[1] == NULL || command->args[2] == NULL){
       printf("chatroom requires 2 arguments\n");
@@ -692,14 +690,11 @@ int process_command(struct command_t *command) {
   /***************** piping *****************************************/
   int write_to_pipes2 = 0;
   int read_from_pipes2 = 0;
-	while (iteration != 1){ // basically create a line of grand children
-    // TODO: find out why pipes2.txt doesn't work
-    
-		//int fd[2];
-		//pipe(fd);
+	while (iteration != 1){
 		pid_t pipebaby = fork();
 		if (pipebaby == 0){
-			if (iteration == total_pipes){ //first iteration
+			if (iteration == total_pipes){ 
+        //first iteration
 				//******************write the output into a file then keep going from there************************//
 				/****** delete the file if it exist */
 				if (access("pipes.txt", F_OK) == 0) {
@@ -710,18 +705,15 @@ int process_command(struct command_t *command) {
 				}
         if(access("write_to_pipes2",F_OK) == 0){
             remove("write_to_pipes2");
-          }
+        }
 
 				/******************************************/
 				/*** write to the file ****/
-				int file_desc1 = open("pipes.txt",O_WRONLY | O_CREAT,0777) ;
-				int fd_dup2 = dup2(file_desc1,1);
+				int file_desc1 = open("pipes.txt",O_WRONLY | O_CREAT,0777);
+				dup2(file_desc1,1);
 				close(file_desc1);
-        write_to_pipes2 = 1;
-        int fd_bos = open("write_to_pipes2",O_WRONLY | O_CREAT,0777); // to create write to pipes2
-        close(fd_bos);
-        //write_to_pipes2 = 1;
-        //read_from_pipes2 = 0;
+        int fd_dummy = open("write_to_pipes2",O_WRONLY | O_CREAT,0777); // to create write_to_pipes2
+        close(fd_dummy);
 
 				//execute the code
         /******** uniq *******************/
@@ -740,12 +732,9 @@ int process_command(struct command_t *command) {
 					token = strtok(NULL,":");	
 				}
 			}
-			else{ //TODO: doesnt work for more than 2 pipes
+			else{ 
 				// not first iteration
-        if (iteration == 2){
-          exit(0);
-        }
-				for (int i=0 ; i<(total_pipes-iteration)+1 ;i++){
+				for (int i=0 ; i<(total_pipes-iteration);i++){
         			command = command->next;
         		}
 				// increase args size by 2
@@ -773,23 +762,22 @@ int process_command(struct command_t *command) {
           }
           if(read_from_pipes2){
             int file_desc1 = open("pipes2.txt",O_RDONLY) ;
-            int fd_dup2 = dup2(file_desc1,0);
+            dup2(file_desc1,0);
             close(file_desc1);
           }
           else{//read from pipes.txt
             int file_desc1 = open("pipes.txt",O_RDONLY) ;
-            int fd_dup2 = dup2(file_desc1,0);
+            dup2(file_desc1,0);
             close(file_desc1);
           }
           /*write to the file*/
           if (write_to_pipes2){
-            //cannot reach here
-              //remove pipes2.txt if it exist
-              if(access("pipes2.txt",F_OK) == 0){
+            //remove pipes2.txt if it exist
+            if(access("pipes2.txt",F_OK) == 0){
               remove("pipes2.txt");
             }
             int file_desc2 = open("pipes2.txt",O_WRONLY | O_CREAT,0777) ;
-            int fd_dup2 = dup2(file_desc2,1);
+            dup2(file_desc2,1);
             close(file_desc2);
             remove("write_to_pipes2");
             //write_to_pipes2 = 0;
@@ -802,7 +790,7 @@ int process_command(struct command_t *command) {
                 remove("pipes.txt");
               }
             int file_desc2 = open("pipes.txt",O_WRONLY | O_CREAT,0777) ;
-            int fd_dup2 = dup2(file_desc2,1);
+            dup2(file_desc2,1);
             close(file_desc2);
             //write_to_pipes2 = 1;
             //read_from_pipes2 = 0;
@@ -835,7 +823,6 @@ int process_command(struct command_t *command) {
 				//do nothing and let the children execute
 			}
 			else{
-        // TODO:this executes twice for some reason
         // where is pipes2.txt ??
 
 				wait(NULL);
@@ -857,7 +844,6 @@ int process_command(struct command_t *command) {
  			    command->args[command->arg_count - 1] = NULL;
  			    //printf("command = %s\n",command->args[0]);
           /*          take input            */
-          //TODO: doesnt work as we change these in child
           if (access("write_to_pipes2",F_OK) == 0){//if it exists
            //printf("WRITING TO PIPES 2 !\n");
             write_to_pipes2 = 1;
@@ -870,12 +856,12 @@ int process_command(struct command_t *command) {
           }
           if(read_from_pipes2){
             int file_desc1 = open("pipes2.txt",O_RDONLY) ;
-            int fd_dup2 = dup2(file_desc1,0);
+            dup2(file_desc1,0);
             close(file_desc1);
           }
           else{//read from pipes.txt
             int file_desc1 = open("pipes.txt",O_RDONLY) ;
-            int fd_dup2 = dup2(file_desc1,0);
+            dup2(file_desc1,0);
             close(file_desc1);
           }
 				pid_t pid_child = fork();
@@ -924,15 +910,15 @@ int process_command(struct command_t *command) {
 		iteration--;
 	}
     char *token = strtok(getenv("PATH"),":");
-	while(token != NULL){
-		char path[50];
-		strcpy(path,token);	
-		strcat(path,"/");
-		strcat(path,command->args[0]);
-		if (execv(path,command->args) != -1){ // do nothing
-			}
-		token = strtok(NULL,":");	
-		}
+    while(token != NULL){
+      char path[50];
+      strcpy(path,token);	
+      strcat(path,"/");
+      strcat(path,command->args[0]);
+      if (execv(path,command->args) != -1){ // do nothing
+        }
+      token = strtok(NULL,":");	
+      }
     //execvp(command->name, command->args); // exec+args+path
     exit(0);
   } 
@@ -947,7 +933,6 @@ int process_command(struct command_t *command) {
   		else{
   			wait(NULL);
   		}
-    // TODO: implement background processes here
     //wait(0); // wait for child process to finish
     return SUCCESS;
   }
