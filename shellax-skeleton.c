@@ -627,95 +627,31 @@ int process_command(struct command_t *command) {
   }
 	/*********************** UNIQ ***************************************/
 	
-	struct command_t *head = command;
-	
-	//if there are more than 2 pipes
-	//get the total number of pipes
-	
-	int total_pipes = -1;
-	
-	while (command){ //counting total pipes
+	if (strcmp(command->args[0],"uniq") == 0 ){
+    		strcpy(command->args[0],"./uniq");
+    		char *token = strtok(getenv("PATH"),":");
+    		while(token != NULL){
+      			char path[50];
+      			strcpy(path,token);	
+      			strcat(path,"/");
+      			strcat(path,command->args[0]);
+      			if (execv(path,command->args) != -1){ 
+      				// do nothing
+      			}
+	  	}
+  	}
+	// for more than 2 pipes
+	//getting total number of pipes
+
+	struct command_t *head2 = command;
+	int total_pipes = 0;
+	while (command){
 		total_pipes++;
 		command = command->next;
-		//printf("command: %s\n",command->name);
-	}
-	
-	int iteration = total_pipes;
-	command = head; 
-	
-	//open the txt file to read
-	FILE * fp;
-	char  *line = NULL;
-	size_t len = 0;
-	ssize_t read;
-	fp = fopen(command->args[1], "r");
-	
-	int i=0;
-	char arr[50]; //string array created to copy the content of the txt file
-	int N=0; //length of the txt file will be stored in N
-	
-	if (access(command->args[1],F_OK)==0) { //if txt file exists
-		if (strcmp(command->args[0],"cat")==0) { //if the first command is "cat"		    
-			if (total_pipes != 0) { //if there exist pipe or pipes
-				
-		    		command = command->next;
-		 		if (strcmp(command->name,"uniq")==0) { //if uniq command exists
-					
-					while(fgets(arr, 50, fp)!=NULL){ //counting the number of lines
-						N++;	
-					}
-					
-					char strings[100][50];
-					rewind(fp);
 
-					int duplicate_count=1;
-					
-					for(i=0;i<N /*&& i<MAX_STRINGS*/;i++){	//copy content of the file into the string array			
-						fgets(arr, 50, fp);
-						strcpy(strings[i], arr); 
-					}
-					if (command->args[0]!=NULL) {
-						if (strcmp(command->args[0],"-c")==0) { //if -c command exists
-							i=0;
-							while (i<N) {
-				      				if (strcmp(strings[i],strings[i+1])==0 && (i+1)<N) { //counting for duplicates
-									duplicate_count++;
-									i++;
-				      				}
-				     				else {
-						 			printf("%d %s",duplicate_count,strings[i]);
-									i++;
-									duplicate_count=1;
-				      				}			      		
-				    			}
-				    	
-						}
-					}
-					else{ //just uniq command exists
-						for (i=0; i<N; i++) {
-							if (i!=0) {	
-								for (int j=i-1; j<i+1; j++) {					
-									if (strcmp(strings[i],strings[j])==0) {
-								     		//do nothing;
-									}
-									else {
-										printf("%s",strings[i]);
-									}
-								}
-							}
-							else {
-								printf("%s",strings[i]);
-							}
-						}
-					}
-					
-					
-				}     
-			}
-		 }
 	}
-   	
-	
+	command = head2;
+	int iteration = total_pipes;
 
   /***************** piping *****************************************/
   int write_to_pipes2 = 0;
