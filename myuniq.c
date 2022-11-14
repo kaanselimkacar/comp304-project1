@@ -14,12 +14,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 int main(int argc, char* argv[]){
+
 	char str[100];
 	char old_str[100];
-	//TODO: read with pipes
-    bool iscount;
-    int indexoffile = 1;
-
+   	bool iscount;
+    	int indexoffile = 1;
+  
+	int i=0;
+	char arr[50]; //string array created to copy the content of the txt file
+	int N=0; //length of the txt file will be stored in N
+		
 	if (argv[1] != NULL){
 		if (strcmp(argv[1], "-c") == 0){
 			indexoffile++;
@@ -30,14 +34,14 @@ int main(int argc, char* argv[]){
 			iscount = true;
 		}
 	}
-    if (argv[2]){
+    	if (argv[2]){
    		if (strcmp(argv[2], "-c") == 0){
 			iscount = true;
 			}
 		if (strcmp(argv[2],"--count") == 0 ){
 			iscount = true;
     		}
-		}
+	}
 	FILE *fp;
 	if (access("write_to_pipes2",F_OK) == 0){
 		fp = fopen("pipes.txt","r");
@@ -53,29 +57,62 @@ int main(int argc, char* argv[]){
 			exit(1);
 		}
 	}
-    int n = 1;
-    int *occurances = (int *)malloc(n*sizeof(int));
-    int index = -1;
-    char *collector = (char *)malloc(n*100);
-    //iterate once to get the occurance
-  	 while(fgets(str,100,fp) != NULL){
-		if (strcmp(str,old_str)== 0){
-			occurances[index]++;
+	if (argv[1] != NULL) {
+	  	if (strcmp(argv[1],"-c")==0) { //if uniq -c command exists
+	  		while(fgets(arr, 50, fp)!=NULL){ //counting the number of lines
+			N++;	
 		}
-		else{
-			n++;
-			index++;
-			if (occurances[index] == 0){
-				occurances[index]++;
+		char strings[100][50];
+		rewind(fp);
+		int duplicate_count=1;
+		for(i=0;i<N /*&& i<MAX_STRINGS*/;i++){	//copy content of the file into the string array			
+			fgets(arr, 50, fp);
+			strcpy(strings[i], arr); 
+		}
+			i=0;
+			while (i<N) {
+				if (strcmp(strings[i],strings[i+1])==0 && (i+1)<N) { //counting for duplicates
+					duplicate_count++;
+					i++;
+				}
+				else {
+					printf("%d %s",duplicate_count,strings[i]);
+					i++;
+					duplicate_count=1;
+				}			      		
 			}
-			occurances = (int *) realloc(occurances,n*sizeof(int));
+					    	
 		}
-      	strcpy(old_str,str);
-    }
-    fclose(fp);
-    
-    //iterate to get the strings now
-   FILE *fp2;
+	}
+	else { //if uniq command exists
+		while(fgets(arr, 50, fp)!=NULL){ //counting the number of lines
+			N++;	
+		}
+		char strings[100][50];
+		rewind(fp);
+		int duplicate_count=1;
+		for(i=0;i<N /*&& i<MAX_STRINGS*/;i++){	//copy content of the file into the string array			
+			fgets(arr, 50, fp);
+			strcpy(strings[i], arr); 
+		}
+	   	for (i=0; i<N; i++) {
+			if (i!=0) {	
+				for (int j=i-1; j<i+1; j++) {					
+					if (strcmp(strings[i],strings[j])==0) {
+						//do nothing;
+					}
+					else {
+						printf("%s",strings[i]);
+					}
+				}
+			}
+			else {
+				printf("%s",strings[i]);
+			}
+		}
+	}
+    	//iterate to get the strings now
+   	FILE *fp2;
 	if (access("write_to_pipes2",F_OK) == 0){
 		fp2 = fopen("pipes.txt","r");
 		if ( fp2 == NULL){
@@ -90,37 +127,5 @@ int main(int argc, char* argv[]){
 			exit(1);
 		}
 	}
-    index = -1;
-    n = 1;
-    while(fgets(str,100,fp2) != NULL){
-		if (strcmp(str,old_str)== 0){
-			//occurances[index]++;
-		}
-		else{
-			n++;
-			index++;
-			collector = (char *)realloc(collector,n*100);
-			if (iscount){
-				char useless[10];
-				//printf("useless : %s\n",useless);
-				sprintf(useless,"%d",occurances[index]);
-				strcat(collector,useless);
-				strcat(collector," ");
-			}
-			//strcat(collector,"\t");
-			strcat(collector,str);
-		}
-      	strcpy(old_str,str);
-    }
-    
-    
-    fclose(fp2);
-    
-    printf("%s",collector);
-    free(collector);
-    free(occurances);
-    
-    
-    return 0;
+        return 0;
 }
-
