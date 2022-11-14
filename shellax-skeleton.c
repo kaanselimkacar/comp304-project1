@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#define MAX_STRINGS 100
 
 
 #define READ_END 0
@@ -598,33 +599,33 @@ int process_command(struct command_t *command) {
   }
 	/*********************** UNIQ ***************************************/
 	
-	if (strcmp(command->args[0],"uniq") == 0 ){
-    strcpy(command->args[0],"./uniq");
-    char *token = strtok(getenv("PATH"),":");
-    while(token != NULL){
-      char path[50];
-      strcpy(path,token);	
-      strcat(path,"/");
-      strcat(path,command->args[0]);
-      if (execv(path,command->args) != -1){ // do nothing
-      }
-	  }
-  }
-	// for more than 2 pipes
-	//getting total number of pipes
-
 	struct command_t *head = command;
-	int total_pipes = 0;
-	while (command){
+	
+	//if there are more than 2 pipes
+	//get the total number of pipes
+	
+	int total_pipes = -1;
+	
+	while (command){ //counting total pipes
 		total_pipes++;
-		//printf("command : %s\n",command->name);
 		command = command->next;
-
+		//printf("command: %s\n",command->name);
 	}
-	command = head;
-	//printf("total_pipes = %d\n",total_pipes);
+	
 	int iteration = total_pipes;
-	//printf("iteration = %d\n",iteration);
+	command = head; 
+	
+	//open the txt file to read
+	FILE * fp;
+	char  *line = NULL;
+	size_t len = 0;
+	ssize_t read;
+	fp = fopen(command->args[1], "r");
+	
+	int i=0;
+	char arr[50]; //string array created to copy the content of the txt file
+	int N=0; //length of the txt file will be stored in N
+
   /***************** piping *****************************************/
   int write_to_pipes2 = 0;
   int read_from_pipes2 = 0;
