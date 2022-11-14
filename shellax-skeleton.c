@@ -385,11 +385,13 @@ int process_command(struct command_t *command) {
 		int file_desc = open(command->redirects[0],O_RDONLY);
 		int fd_dup1 = dup2(file_desc,0);
 		close(file_desc);
+    /*
 		int index = 0;
 		while(command->args[index] != NULL){
 			printf("command->args[%d] = %s\n",index,command->args[index]);
 			index++;
 		}
+    */
 	}
 	if (command->redirects[1] != NULL && command->redirects[2] != NULL){
 		//if both > >> then give priority to > I guess idk
@@ -617,16 +619,18 @@ int process_command(struct command_t *command) {
 		total_pipes++;
 		//printf("command : %s\n",command->name);
 		command = command->next;
-		
+
 	}
 	command = head;
 	//printf("total_pipes = %d\n",total_pipes);
 	int iteration = total_pipes;
 	//printf("iteration = %d\n",iteration);
   /***************** piping *****************************************/
+  int write_to_pipes2 = 0;
+  int read_from_pipes2 = 0;
 	while (iteration != 1){ // basically create a line of grand children
-    bool write_to_pipes2 = false;
-    bool read_from_pipes2 = false;
+    // TODO: find out why pipes2.txt doesn't work
+    
 		//int fd[2];
 		//pipe(fd);
 		pid_t pipebaby = fork();
@@ -635,51 +639,31 @@ int process_command(struct command_t *command) {
 				//******************write the output into a file then keep going from there************************//
 				/****** delete the file if it exist */
 				if (access("pipes.txt", F_OK) == 0) {
-					pid_t terrorist = fork();
-					if (terrorist == 0){
-						strcpy(command->args[1],"pipes.txt");
-						strcpy(command->args[0],"rm");
-						command->args[2] = NULL;
-						execvp("rm",command->args);
-						exit(0);
-					}
-          wait(NULL);
+					remove("pipes.txt");
 				}
         if (access("pipes2.txt", F_OK) == 0) {
-					pid_t terrorist = fork();
-					if (terrorist == 0){
-						strcpy(command->args[1],"pipes2.txt");
-						strcpy(command->args[0],"rm");
-						command->args[2] = NULL;
-						execvp("rm",command->args);
-						exit(0);
-					}
-          wait(NULL);
+					remove("pipes2.txt");
 				}
+        if(access("write_to_pipes2",F_OK) == 0){
+            remove("write_to_pipes2");
+          }
 
 				/******************************************/
 				/*** write to the file ****/
 				int file_desc1 = open("pipes.txt",O_WRONLY | O_CREAT,0777) ;
 				int fd_dup2 = dup2(file_desc1,1);
 				close(file_desc1);
-
-        write_to_pipes2 = true;
-        //read_from_pipes2 = false;
+        write_to_pipes2 = 1;
+        int fd_bos = open("write_to_pipes2",O_WRONLY | O_CREAT,0777); // to create write to pipes2
+        close(fd_bos);
+        //write_to_pipes2 = 1;
+        //read_from_pipes2 = 0;
 
 				//execute the code
         /******** uniq *******************/
 				if (strcmp(command->args[0],"uniq") == 0 ){
-					strcpy(command->args[0],"./uniq");
-         char *token = strtok(getenv("PATH"),":");
-          while(token != NULL){
-              char path[50];
-            strcpy(path,token);	
-            strcat(path,"/");
-            strcat(path,command->args[0]);
-            if (execv(path,command->args) != -1){ // do nothing
-            }
-            token = strtok(NULL,":");
-          }
+					strcpy(command->args[0],"/home/kaan/comp304/project1/uniq");
+          execv("/home/kaan/comp304/project1/uniq",command->args);
 				}
 				char *token = strtok(getenv("PATH"),":");
 				while(token != NULL){
@@ -694,6 +678,9 @@ int process_command(struct command_t *command) {
 			}
 			else{ //TODO: doesnt work for more than 2 pipes
 				// not first iteration
+        if (iteration == 2){
+          exit(0);
+        }
 				for (int i=0 ; i<(total_pipes-iteration)+1 ;i++){
         			command = command->next;
         		}
@@ -702,14 +689,24 @@ int process_command(struct command_t *command) {
        				command->args, sizeof(char *) * (command->arg_count += 2));
 
 				// shift everything forward by 1
-				for (int i = command->arg_count - 2; i > 0; --i)
+				for (int i = command->arg_count - 2; i > 0; --i){
 		   			command->args[i] = command->args[i - 1];
+        }
 		    	// set args[0] as a copy of name
 			    command->args[0] = strdup(command->name);
 			   	// set args[arg_count-1] (last) to NULL
 			    command->args[command->arg_count - 1] = NULL;
 			    ////////////////////////////////////////////////////////////  
           /* take inputs*/
+          //printf("write  == %d\n",write_to_pipes2);
+          if (access("write_to_pipes2",F_OK) == 0){//if it exists
+            write_to_pipes2 = 1;
+            read_from_pipes2 = 0;
+          }
+          else{
+            write_to_pipes2 = 0;
+            read_from_pipes2 = 1;
+          }
           if(read_from_pipes2){
             int file_desc1 = open("pipes2.txt",O_RDONLY) ;
             int fd_dup2 = dup2(file_desc1,0);
@@ -722,61 +719,38 @@ int process_command(struct command_t *command) {
           }
           /*write to the file*/
           if (write_to_pipes2){
+            //cannot reach here
               //remove pipes2.txt if it exist
               if(access("pipes2.txt",F_OK) == 0){
-              pid_t terrorist = fork();
-              if (terrorist == 0){
-                strcpy(command->args[1],"pipes2.txt");
-                strcpy(command->args[0],"rm");
-                command->args[2] = NULL;
-                execvp("rm",command->args);
-                exit(0);
-              }
-              wait(NULL);
-              
+              remove("pipes2.txt");
             }
             int file_desc2 = open("pipes2.txt",O_WRONLY | O_CREAT,0777) ;
             int fd_dup2 = dup2(file_desc2,1);
             close(file_desc2);
-            write_to_pipes2 = false;
-            read_from_pipes2 = true;
+            remove("write_to_pipes2");
+            //write_to_pipes2 = 0;
+            //read_from_pipes2 = 1;
           }
 
           else{//write to pipes.txt
               //remove pipes.txt first if it exists
               if(access("pipes.txt",F_OK) == 0){
-                pid_t terrorist = fork();
-                if (terrorist == 0){
-                  strcpy(command->args[1],"pipes.txt");
-                  strcpy(command->args[0],"rm");
-                  command->args[2] = NULL;
-                  execvp("rm",command->args);
-                  exit(0);
-                  }
-                wait(NULL);
-                
+                remove("pipes.txt");
               }
             int file_desc2 = open("pipes.txt",O_WRONLY | O_CREAT,0777) ;
             int fd_dup2 = dup2(file_desc2,1);
             close(file_desc2);
-            write_to_pipes2 = true;
-            read_from_pipes2 = false;
+            //write_to_pipes2 = 1;
+            //read_from_pipes2 = 0;
+            int fd = open("write_to_pipes2",O_WRONLY | O_CREAT,0777);
+            close(fd);           
           }
           //execute the code
-          /*          uniq              */
-          if (strcmp(command->args[0],"uniq") == 0 ){
-            strcpy(command->args[0],"./uniq");
-          char *token = strtok(getenv("PATH"),":");
-            while(token != NULL){
-                char path[50];
-              strcpy(path,token);	
-              strcat(path,"/");
-              strcat(path,command->args[0]);
-              if (execv(path,command->args) != -1){ // do nothing
-              }
-              token = strtok(NULL,":");
-            }
-				  }
+          /******** uniq *******************/
+				if (strcmp(command->args[0],"uniq") == 0 ){
+					strcpy(command->args[0],"/home/kaan/comp304/project1/uniq");
+          execv("/home/kaan/comp304/project1/uniq",command->args);
+				}
           /***********/
           char *token = strtok(getenv("PATH"),":");
           while(token != NULL){
@@ -797,6 +771,9 @@ int process_command(struct command_t *command) {
 				//do nothing and let the children execute
 			}
 			else{
+        // TODO:this executes twice for some reason
+        // where is pipes2.txt ??
+
 				wait(NULL);
         /************************/
           for (int i=0 ; i<(total_pipes-iteration)+1 ;i++){
@@ -815,21 +792,18 @@ int process_command(struct command_t *command) {
  			      // set args[arg_count-1] (last) to NULL
  			    command->args[command->arg_count - 1] = NULL;
  			    //printf("command = %s\n",command->args[0]);
-          /*         uniq            */
-          if (strcmp(command->args[0],"uniq") == 0 ){
-            strcpy(command->args[0],"./uniq");
-            char *token = strtok(getenv("PATH"),":");
-            while(token != NULL){
-              char path[50];
-              strcpy(path,token);	
-              strcat(path,"/");
-              strcat(path,command->args[0]);
-              if (execv(path,command->args) != -1){ // do nothing
-              }
-              token = strtok(NULL,":");
-           }
-          }
           /*          take input            */
+          //TODO: doesnt work as we change these in child
+          if (access("write_to_pipes2",F_OK) == 0){//if it exists
+           //printf("WRITING TO PIPES 2 !\n");
+            write_to_pipes2 = 1;
+            read_from_pipes2 = 0;
+          }
+          else{
+            //printf("WRITING TO PIPES!\n");
+            write_to_pipes2 = 0;
+            read_from_pipes2 = 1;
+          }
           if(read_from_pipes2){
             int file_desc1 = open("pipes2.txt",O_RDONLY) ;
             int fd_dup2 = dup2(file_desc1,0);
@@ -843,6 +817,11 @@ int process_command(struct command_t *command) {
 				pid_t pid_child = fork();
         if (pid_child == 0){
           // execute the code
+          /******** uniq *******************/
+          if (strcmp(command->args[0],"uniq") == 0 ){
+            strcpy(command->args[0],"/home/kaan/comp304/project1/uniq");
+            execv("/home/kaan/comp304/project1/uniq",command->args);
+          }
           char *token = strtok(getenv("PATH"),":");
 			  	while(token != NULL){
 				  	char path[50];
@@ -851,36 +830,35 @@ int process_command(struct command_t *command) {
 			  		strcat(path,command->args[0]);
 			  		if (execv(path,command->args) != -1){ // do nothing
 			  			}
-					token = strtok(NULL,":");	
+				  	token = strtok(NULL,":");	
 				  }
         }
         else{
           wait(NULL);
+          
           if(access("pipes2.txt",F_OK) == 0){
-            pid_t terrorist = fork();
-            if (terrorist == 0){
-              strcpy(command->args[1],"pipes2.txt");
-              strcpy(command->args[0],"rm");
-              command->args[2] = NULL;
-              execvp("rm",command->args);
-              exit(0);
-            }
-            wait(NULL);
+            //printf("pipes2.txt exists\n");
+            remove("pipes2.txt");
+          }
+           if(access("write_to_pipes2",F_OK) == 0){
+            //printf("write_to_pipes2 exists\n");
+            remove("write_to_pipes2");
+            //printf("write_to_pipes2 removed\n");
           }
           if (access("pipes.txt", F_OK) == 0) {
-						strcpy(command->args[1],"pipes.txt");
-						strcpy(command->args[0],"rm");
-						command->args[2] = NULL;
-						execvp("rm",command->args);
-						exit(0);
-			  	}
+            //printf("pipes.txt exists\n");
+
+            remove("pipes.txt");
+            //printf("pipes.txt removed\n");
+			  	}            
+          
           exit(0);
+          return 0;
         } 
 			}
 		}
 		iteration--;
 	}
-	
     char *token = strtok(getenv("PATH"),":");
 	while(token != NULL){
 		char path[50];
