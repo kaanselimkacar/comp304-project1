@@ -595,6 +595,36 @@ int process_command(struct command_t *command) {
     fclose(fp);
     exit(0);
   }
+  /********************custom command (love)********************************/
+ 
+  /*prints the content of the file with the specified name
+  e.g love [name] */
+  if (strcmp(command->args[0],"love")==0) {
+  	if (command->args[1] != NULL) {
+	  	printf("\n\n                %s\n",command->args[1]); //name that will printed	
+	  	FILE *fptr;
+	    	char filename[100], c;
+
+	    	// Open file
+	   	fptr = fopen(command->args[0], "r");
+	    	if (fptr == NULL) {
+			printf("Cannot open file \n");
+			exit(0);
+	    	}
+	  
+	    	// Read contents from file
+	    	c = fgetc(fptr);
+	    	while (c != EOF) {
+			printf ("%c", c);
+			c = fgetc(fptr);
+	    	}
+	    	fclose(fptr);
+	    	return 0;
+  	}
+  	else {
+  		printf("Please enter a name..\n");
+  	}
+  }
 	/*********************** UNIQ ***************************************/
 	
 	struct command_t *head = command;
