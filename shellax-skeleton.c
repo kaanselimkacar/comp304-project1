@@ -503,6 +503,7 @@ int process_command(struct command_t *command) {
     }
   }
   /********************CHATROOM***************************************************/
+  // TODO: add write your message here functionality
   if(strcmp(command->args[0],"chatroom") == 0){
     if(command->args[1] == NULL || command->args[2] == NULL){
       printf("chatroom requires 2 arguments\n");
@@ -525,12 +526,14 @@ int process_command(struct command_t *command) {
       //create the chatroom
       mkdir(room_address, 0777);
     }
-      //check if user exists 
-    if(access(user_address, F_OK) == -1){
-      //if the user doesn't exist
-      //create the user
-      mkfifo(user_address, 0777);
+    //if user exists in chatroom
+    //remove the user
+    if(access(user_address, F_OK) != -1){
+      remove(user_address);
     }
+    //create the user
+    mkfifo(user_address, 0777);
+ 
     //continuosuly read from the user fifo
     //continuously write to the chatroom fifo
     
@@ -545,6 +548,7 @@ int process_command(struct command_t *command) {
       while(1){
         read(fd, read_msg, 100);
         if(strcmp(read_msg,prev_msg) != 0){
+          //printf("\r");
           printf("[%s] %s",command->args[1],read_msg);
           strcpy(prev_msg,read_msg);
         }
@@ -552,8 +556,9 @@ int process_command(struct command_t *command) {
     }
     else{//writer parent
       while(1){
+        //printf("[%s] %s >> ",command->args[1],command->args[2]);
         strcpy(write_msg,name);
-        strcat(write_msg,": ");  
+        strcat(write_msg,": ");
         fgets(get_msg, 100, stdin);
         strcat(write_msg,get_msg);
         //write to all other users' pipe
@@ -562,7 +567,7 @@ int process_command(struct command_t *command) {
         d = opendir(room_address);
         if (d){
           while ((dir = readdir(d)) != NULL){
-            if(strcmp(dir->d_name,".") != 0 && strcmp(dir->d_name,"..") != 0 && strcmp(dir->d_name,name) != 0){
+            if(strcmp(dir->d_name,".") != 0 && strcmp(dir->d_name,"..") != 0){
               char user_address[50] = "/tmp/";
               strcat(user_address,room);
               strcat(user_address,"/");
@@ -595,8 +600,14 @@ int process_command(struct command_t *command) {
     fclose(fp);
     exit(0);
   }
+<<<<<<< HEAD
   /********************custom command (love)********************************/
  
+=======
+
+    /********************custom command (love)********************************/
+
+>>>>>>> 07dc19f (fixed uniq and overall improvements)
   /*prints the content of the file with the specified name
   e.g love [name] */
   if (strcmp(command->args[0],"love")==0) {
@@ -611,7 +622,11 @@ int process_command(struct command_t *command) {
 			printf("Cannot open file \n");
 			exit(0);
 	    	}
+<<<<<<< HEAD
 	  
+=======
+
+>>>>>>> 07dc19f (fixed uniq and overall improvements)
 	    	// Read contents from file
 	    	c = fgetc(fptr);
 	    	while (c != EOF) {
@@ -625,6 +640,7 @@ int process_command(struct command_t *command) {
   		printf("Please enter a name..\n");
   	}
   }
+<<<<<<< HEAD
 	/*********************** UNIQ ***************************************/
 	
 	if (strcmp(command->args[0],"uniq") == 0 ){
@@ -653,10 +669,28 @@ int process_command(struct command_t *command) {
 	command = head2;
 	int iteration = total_pipes;
 
+=======
+  /**************************************************************************/
+	struct command_t *head = command;
+	
+	//if there are more than 2 pipes
+	//get the total number of pipes
+	
+	int total_pipes = 0;
+	
+	while (command){ //counting total pipes
+		total_pipes++;
+		command = command->next;
+		//printf("command: %s\n",command->name);
+	}
+	
+	int iteration = total_pipes;
+	command = head; 
+>>>>>>> 07dc19f (fixed uniq and overall improvements)
   /***************** piping *****************************************/
   int write_to_pipes2 = 0;
   int read_from_pipes2 = 0;
-	while (iteration != 1){
+	while (iteration > 1){
 		pid_t pipebaby = fork();
 		if (pipebaby == 0){
 			if (iteration == total_pipes){ 
@@ -679,7 +713,7 @@ int process_command(struct command_t *command) {
 				dup2(file_desc1,1);
 				close(file_desc1);
         int fd_dummy = open("write_to_pipes2",O_WRONLY | O_CREAT,0777); // to create write_to_pipes2
-        close(fd_dummy);
+        close(fd_dummy); 
 
 				//execute the code
         /******** uniq *******************/
@@ -736,6 +770,14 @@ int process_command(struct command_t *command) {
             dup2(file_desc1,0);
             close(file_desc1);
           }
+
+          /******** uniq *******************/
+          if (strcmp(command->args[0],"uniq") == 0 ){
+            strcpy(command->args[0],"/home/kaan/comp304/project1/uniq");
+            execv("/home/kaan/comp304/project1/uniq",command->args);
+          }
+          /***********/
+
           /*write to the file*/
           if (write_to_pipes2){
             //remove pipes2.txt if it exist
@@ -764,12 +806,7 @@ int process_command(struct command_t *command) {
             close(fd);           
           }
           //execute the code
-          /******** uniq *******************/
-				if (strcmp(command->args[0],"uniq") == 0 ){
-					strcpy(command->args[0],"/home/kaan/comp304/project1/uniq");
-          execv("/home/kaan/comp304/project1/uniq",command->args);
-				}
-          /***********/
+          
           char *token = strtok(getenv("PATH"),":");
           while(token != NULL){
             char path[50];
@@ -789,8 +826,6 @@ int process_command(struct command_t *command) {
 				//do nothing and let the children execute
 			}
 			else{
-        // where is pipes2.txt ??
-
 				wait(NULL);
         /************************/
           for (int i=0 ; i<(total_pipes-iteration)+1 ;i++){
@@ -851,7 +886,29 @@ int process_command(struct command_t *command) {
         }
         else{
           wait(NULL);
-          
+          /******if uniq*/
+          if (strcmp(command->args[0],"uniq") == 0 ){
+            pid_t child = fork();
+            if (child == 0){
+              if(write_to_pipes2){
+                command->args[0] = "cat";
+                command->args[1] = "pipes2.txt";
+                command->args[2] = NULL;
+                execvp("cat",command->args);
+              }
+              else{
+                command->args[0] = "cat";
+                command->args[1] = "pipes.txt";
+                command->args[2] = NULL;
+                execvp("cat",command->args);
+              }
+            }
+            else{//parent of child
+              wait(NULL);
+            }
+          }
+          /****************************/
+          /*
           if(access("pipes2.txt",F_OK) == 0){
             //printf("pipes2.txt exists\n");
             remove("pipes2.txt");
@@ -866,7 +923,8 @@ int process_command(struct command_t *command) {
 
             remove("pipes.txt");
             //printf("pipes.txt removed\n");
-			  	}            
+			  	}      
+        */
           
           exit(0);
           return 0;
