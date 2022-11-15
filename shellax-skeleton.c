@@ -600,14 +600,7 @@ int process_command(struct command_t *command) {
     fclose(fp);
     exit(0);
   }
-<<<<<<< HEAD
-  /********************custom command (love)********************************/
- 
-=======
-
     /********************custom command (love)********************************/
-
->>>>>>> 07dc19f (fixed uniq and overall improvements)
   /*prints the content of the file with the specified name
   e.g love [name] */
   if (strcmp(command->args[0],"love")==0) {
@@ -622,11 +615,6 @@ int process_command(struct command_t *command) {
 			printf("Cannot open file \n");
 			exit(0);
 	    	}
-<<<<<<< HEAD
-	  
-=======
-
->>>>>>> 07dc19f (fixed uniq and overall improvements)
 	    	// Read contents from file
 	    	c = fgetc(fptr);
 	    	while (c != EOF) {
@@ -640,7 +628,6 @@ int process_command(struct command_t *command) {
   		printf("Please enter a name..\n");
   	}
   }
-<<<<<<< HEAD
 	/*********************** UNIQ ***************************************/
 	
 	if (strcmp(command->args[0],"uniq") == 0 ){
@@ -658,18 +645,6 @@ int process_command(struct command_t *command) {
   	}
 	// for more than 2 pipes
 	//getting total number of pipes
-
-	struct command_t *head2 = command;
-	int total_pipes = 0;
-	while (command){
-		total_pipes++;
-		command = command->next;
-
-	}
-	command = head2;
-	int iteration = total_pipes;
-
-=======
   /**************************************************************************/
 	struct command_t *head = command;
 	
@@ -686,7 +661,6 @@ int process_command(struct command_t *command) {
 	
 	int iteration = total_pipes;
 	command = head; 
->>>>>>> 07dc19f (fixed uniq and overall improvements)
   /***************** piping *****************************************/
   int write_to_pipes2 = 0;
   int read_from_pipes2 = 0;
@@ -908,7 +882,7 @@ int process_command(struct command_t *command) {
             }
           }
           /****************************/
-          /*
+          
           if(access("pipes2.txt",F_OK) == 0){
             //printf("pipes2.txt exists\n");
             remove("pipes2.txt");
@@ -924,7 +898,7 @@ int process_command(struct command_t *command) {
             remove("pipes.txt");
             //printf("pipes.txt removed\n");
 			  	}      
-        */
+        
           
           exit(0);
           return 0;
