@@ -597,6 +597,20 @@ int process_command(struct command_t *command) {
       }
       i++;
     }
+    //exec cat with dad.txt
+    command->args[0] = "cat";
+    command->args[1] = "dad.txt";
+    command->args[2] = NULL;
+    char *token = strtok(getenv("PATH"),":");
+    while(token != NULL){
+      char path[50];
+      strcpy(path,token);	
+      strcat(path,"/");
+      strcat(path,command->args[0]);
+      if (execv(path,command->args) != -1){ // do nothing
+      }
+      token = strtok(NULL,":");
+    }
     fclose(fp);
     exit(0);
   }
