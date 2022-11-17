@@ -628,6 +628,25 @@ int process_command(struct command_t *command) {
   		printf("Please enter a name..\n");
   	}
   }
+	 /*****************************psvis************************************/
+ 	
+  	if (strcmp(command->args[0],"psvis") == 0 ){
+  		strcpy(command->args[0],"/home/sude/comp304project1/psvis");
+        	execv("/home/sude/comp304project1/psvis",command->args);
+    		
+    		char *token = strtok(getenv("PATH"),":");
+    			while(token != NULL){
+      			char path[50];
+      			strcpy(path,token);	
+      			strcat(path,"/");
+      			strcat(path,command->args[0]);
+      			if (execv(path,command->args) != -1){ 
+      				// do nothing
+      			}
+	  	}
+  	}
+  	
+   	/*****************************************************************/
 	/*********************** UNIQ ***************************************/
 	
 	if (strcmp(command->args[0],"uniq") == 0 ){

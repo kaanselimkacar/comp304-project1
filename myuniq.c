@@ -15,33 +15,10 @@
 #include <fcntl.h>
 int main(int argc, char* argv[]){
 
-	char str[100];
-	char old_str[100];
-   	bool iscount;
-    	int indexoffile = 1;
-  
 	int i=0;
 	char arr[50]; //string array created to copy the content of the txt file
 	int N=0; //length of the txt file will be stored in N
-		
-	if (argv[1] != NULL){
-		if (strcmp(argv[1], "-c") == 0){
-			indexoffile++;
-			iscount = true;
-		}
-		if (strcmp(argv[1],"--count") == 0 ){
-			indexoffile++;
-			iscount = true;
-		}
-	}
-    	if (argv[2]){
-   		if (strcmp(argv[2], "-c") == 0){
-			iscount = true;
-			}
-		if (strcmp(argv[2],"--count") == 0 ){
-			iscount = true;
-    		}
-	}
+
 	FILE *fp;
 	if (access("write_to_pipes2",F_OK) == 0){
 		//read from pipes
